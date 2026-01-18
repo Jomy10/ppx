@@ -1,0 +1,4 @@
+#param A
+#param B
+
+A B
