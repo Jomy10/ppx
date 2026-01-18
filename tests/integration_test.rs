@@ -1,4 +1,4 @@
-use template_system::parse_string;
+use ppx::parse_string;
 
 #[test]
 fn test_define() {
@@ -95,4 +95,12 @@ fn test_include_with_param() {
 hello world
 "
     )
+}
+
+#[test]
+fn too_many_parameters() {
+    match parse_string("", std::env::current_dir().unwrap(), [""].into_iter()) {
+        Err(ppx::Error::UnusedParameters) => {},
+        _ => panic!("Expected UnusedParameters error")
+    }
 }

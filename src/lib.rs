@@ -19,6 +19,8 @@ pub enum Error {
     InvalidParameterName(String, usize),
     #[error("First parameter of #include should be a string on line {}", .0)]
     FirstParamOfIncludeNotString(usize),
+    #[error("Unused parameters while expanding macro file")]
+    UnusedParameters,
     #[error("IOError while reading {}: {}", .1.display(), .0)]
     IOError(std::io::Error, PathBuf)
 }
@@ -72,7 +74,7 @@ pub fn parse_cow<'a, Iter, C>(
 /// # Example
 ///
 /// ```rust
-/// # use template_system::*;
+/// # use ppx::*;
 /// let res = parse_string("#define A 4\nThe answer is A", std::env::current_dir().unwrap(), std::iter::empty()).unwrap();
 /// assert_eq!(res, "The answer is 4");
 /// ```
@@ -229,6 +231,10 @@ fn parse_string_cow_impl<'a>(
                 }
             },
         }
+    }
+
+    if parameters.count() != 0 {
+        return Err(Error::UnusedParameters);
     }
 
     return Ok(out);

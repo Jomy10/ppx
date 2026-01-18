@@ -24,6 +24,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ppx"
+version = "0.1.0"
+dependencies = [
+ "concat-string",
+ "itertools",
+ "thiserror",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.105"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -50,15 +59,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "template-system"
-version = "0.1.0"
-dependencies = [
- "concat-string",
- "itertools",
- "thiserror",
 ]
 
 [[package]]
