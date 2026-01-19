@@ -11,10 +11,10 @@ let result = ppx::parse_string(
     #define B hello
     #define fn(name), name!
     
-    A B fn(John)
+    B A fn(John)
     ",
     base_dir,
-    std::iter::empty()
+    ["world"].into_iter()
 );
 // result = "hello world, John!"
 ```
