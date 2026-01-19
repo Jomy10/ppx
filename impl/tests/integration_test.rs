@@ -1,4 +1,4 @@
-use ppx::parse_string;
+use ppx_impl::parse_string;
 
 #[test]
 fn test_define() {
@@ -100,7 +100,7 @@ hello world
 #[test]
 fn too_many_parameters() {
     match parse_string("", std::env::current_dir().unwrap(), [""].into_iter()) {
-        Err(ppx::Error::UnusedParameters) => {},
+        Err(ppx_impl::Error::UnusedParameters) => {},
         _ => panic!("Expected UnusedParameters error")
     }
 }

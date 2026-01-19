@@ -25,11 +25,28 @@ dependencies = [
 
 [[package]]
 name = "ppx"
-version = "0.1.0"
+version = "0.1.1"
+dependencies = [
+ "ppx-impl",
+ "ppx-macros",
+]
+
+[[package]]
+name = "ppx-impl"
+version = "0.1.1"
 dependencies = [
  "concat-string",
  "itertools",
  "thiserror",
+]
+
+[[package]]
+name = "ppx-macros"
+version = "1.0.0"
+dependencies = [
+ "ppx-impl",
+ "quote",
+ "syn",
 ]
 
 [[package]]

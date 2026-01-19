@@ -1,6 +1,6 @@
 # PPX
 
-C-style macro expansion library.
+Small C-style macro expansion library.
 
 ## Example
 
@@ -32,6 +32,14 @@ More examples in the [tests folder](tests/).
 **planned**
 - `#if`
 - Expansion inside of macros
+
+## Development
+
+### Running tests
+
+```sh
+cargo test --workspace
+```
 
 ## License
 

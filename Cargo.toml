@@ -1,11 +1,23 @@
 [package]
 name = "ppx"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "C-style pre-processor library"
+repository = "https://github.com/Jomy10/ppx"
+keywords = ["macro", "pre-processor", "expansion", "preproc", "compile-time"]
+categories = ["template-engine", "development-tools", "development-tools:build-utils"]
 
 [dependencies]
-concat-string = "1.0.1"
-itertools = "0.14.0"
-thiserror = "2.0.17"
+ppx-impl = { path = "impl", version = "=0.1.1" }
+ppx-macros = { path = "macro", optional = true }
+
+[features]
+macro = ["ppx-macros", "ppx-macros/nightly"]
+macro-stable = ["ppx-macros"]
+
+[workspace]
+members = [
+  "macro",
+  "impl"
+]

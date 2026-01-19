@@ -1,0 +1,18 @@
+[package]
+name = "ppx-macros"
+version = "1.0.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+ppx-impl = { path = "../impl", version = "0" }
+quote = "1.0.43"
+syn = { version = "2.0.114", features = ["full"] }
+
+[features]
+# When this feature is enabled, `input_ppx` function is available, but nightly
+# compiler is required to compile this crate.
+nightly = []
