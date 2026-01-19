@@ -1,6 +1,6 @@
 [package]
 name = "ppx-macros"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "Macros for expanding C-style pre-processor macros at compile time. See 'ppx' for the library you should use."
@@ -15,6 +15,10 @@ proc-macro = true
 ppx-impl = { path = "../impl", version = "0" }
 quote = "1.0.43"
 syn = { version = "2.0.114", features = ["full"] }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 # When this feature is enabled, `input_ppx` function is available, but nightly

@@ -25,7 +25,7 @@ dependencies = [
 
 [[package]]
 name = "ppx"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "ppx-impl",
  "ppx-macros",
@@ -42,7 +42,7 @@ dependencies = [
 
 [[package]]
 name = "ppx-macros"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "ppx-impl",
  "quote",

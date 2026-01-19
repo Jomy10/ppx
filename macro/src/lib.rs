@@ -1,3 +1,4 @@
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(feature = "nightly", feature(proc_macro_tracked_path))]
 
 use std::path::PathBuf;
