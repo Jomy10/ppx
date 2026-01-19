@@ -161,7 +161,8 @@ fn parse_string_cow_impl<'a>(
                                     .collect::<String>())
                                 .collect::<Vec<String>>();
 
-                            let check_param_name = params.iter().find(|c| !c.chars().all(|c| c.is_alphanumeric() || c == '_'));
+                            let check_param_name = params.iter().find(|param| !param.chars().all(|c| c.is_alphanumeric() || c == '_'))
+                                .or(params.iter().find(|param| param.len() == 0 || param.chars().next().unwrap().is_numeric()));
                             if let Some(param_name) = check_param_name {
                                 return Err(Error::InvalidParameterName(param_name.clone(), line_num))
                             }
