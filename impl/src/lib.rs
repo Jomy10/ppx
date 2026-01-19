@@ -161,7 +161,7 @@ fn parse_string_cow_impl<'a>(
                                     .collect::<String>())
                                 .collect::<Vec<String>>();
 
-                            let check_param_name = params.iter().find(|c| !c.chars().all(|c| c.is_alphanumeric()));
+                            let check_param_name = params.iter().find(|c| !c.chars().all(|c| c.is_alphanumeric() || c == '_'));
                             if let Some(param_name) = check_param_name {
                                 return Err(Error::InvalidParameterName(param_name.clone(), line_num))
                             }
@@ -245,8 +245,8 @@ fn parse_string_cow_impl<'a>(
 }
 
 fn is_ident(str: &str, start: usize, end: usize) -> bool {
-    (start == 0 || str.chars().nth(start - 1).map(|c| !c.is_alphanumeric()).unwrap_or(true))
-        && str.chars().nth(end).map(|c| !c.is_alphanumeric()).unwrap_or(true)
+    (start == 0 || str.chars().nth(start - 1).map(|c| !(c.is_alphanumeric() || c == '_')).unwrap_or(true))
+        && str.chars().nth(end).map(|c| !(c.is_alphanumeric() || c == '_')).unwrap_or(true)
 }
 
 fn replace<'a>(line: &'a str, replacements: &Vec<(String, Cow<str>)>) -> Cow<'a, str> {
