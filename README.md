@@ -1,5 +1,8 @@
 # PPX
 
+[![Crates.io Version](https://img.shields.io/crates/v/ppx?style=flat-square&label=ppx)](https://crates.io/crates/ppx)
+[![Crates.io License](https://img.shields.io/crates/l/ppx?style=flat-square)](https://github.com/jomy10/ppx/blob/master/LICENSE)
+
 Small C-style macro expansion library.
 
 ## Example
