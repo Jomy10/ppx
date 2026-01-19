@@ -30,11 +30,10 @@ More examples in the [tests folder](tests/).
   parameters which will be used for substituting the names specified by `#param`.
 
 - Macros `include_ppx!` and `include_ppx_string!`: Parse a template at compile time
-  instead of at runtime.
+  instead of at runtime. Enable macros with feature `macros` or `macros-stable`.
 
 **planned**
 - `#if`
-- Expansion inside of macros
 
 ## Development
 
