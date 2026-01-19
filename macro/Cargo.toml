@@ -3,6 +3,10 @@ name = "ppx-macros"
 version = "1.0.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
+description = "Macros for expanding C-style pre-processor macros at compile time. See 'ppx' for the library you should use."
+repository = "https://github.com/Jomy10/ppx"
+keywords = ["macro", "pre-processor", "expansion", "preproc", "compile-time"]
+categories = ["template-engine", "development-tools", "development-tools::build-utils"]
 
 [lib]
 proc-macro = true

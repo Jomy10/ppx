@@ -6,7 +6,7 @@ license = "MIT OR Apache-2.0"
 description = "C-style pre-processor library"
 repository = "https://github.com/Jomy10/ppx"
 keywords = ["macro", "pre-processor", "expansion", "preproc", "compile-time"]
-categories = ["template-engine", "development-tools", "development-tools:build-utils"]
+categories = ["template-engine", "development-tools", "development-tools::build-utils"]
 
 [dependencies]
 ppx-impl = { path = "impl", version = "=0.1.1" }

@@ -3,10 +3,10 @@ name = "ppx-impl"
 version = "0.1.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
-description = "C-style pre-processor library implementation. See 'ppx' for the library you should use"
+description = "C-style pre-processor library implementation. See 'ppx' for the library you should use."
 repository = "https://github.com/Jomy10/ppx"
 keywords = ["macro", "pre-processor", "expansion", "preproc"]
-categories = ["template-engine", "development-tools", "development-tools:build-utils"]
+categories = ["template-engine", "development-tools", "development-tools::build-utils"]
 
 [dependencies]
 concat-string = "1.0.1"
