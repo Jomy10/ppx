@@ -1,0 +1,25 @@
+[package]
+name = "wgsl-template"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "Macro expansion for wgsl using ppx, a C-style macro library"
+repository = "https://github.com/Jomy10/ppx"
+keywords = ["macro", "pre-processor", "WebGPU", "wgsl", "compile-time"]
+categories = ["template-engine", "development-tools", "development-tools::build-utils", "wasm"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+ppx = { path = "..", version = "0.1" }
+quote = "1.0.43"
+syn = { version = "2.0.114", features = ["full"] }
+
+[features]
+# Enables `include_wgsl_template!` macro
+nightly = []

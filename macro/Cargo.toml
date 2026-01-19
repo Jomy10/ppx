@@ -1,6 +1,6 @@
 [package]
 name = "ppx-macros"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "Macros for expanding C-style pre-processor macros at compile time. See 'ppx' for the library you should use."
