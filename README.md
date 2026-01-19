@@ -3,6 +3,7 @@
 [![Crates.io Version](https://img.shields.io/crates/v/ppx?style=flat-square&label=ppx)](https://crates.io/crates/ppx)
 [![Crates.io License](https://img.shields.io/crates/l/ppx?style=flat-square)](https://github.com/jomy10/ppx/blob/master/LICENSE)
 [![docs.rs](https://img.shields.io/docsrs/ppx?style=flat-square)](https://docs.rs/ppx/0.1.2/ppx/)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Jomy10/ppx/test.yml?branch=master&style=flat-square&label=tests)
 
 Small C-style macro expansion library.
 
