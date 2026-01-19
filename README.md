@@ -29,6 +29,9 @@ More examples in the [tests folder](tests/).
 - `#include`: Include another file and parse it as well. Optionally accepts
   parameters which will be used for substituting the names specified by `#param`.
 
+- Macros `include_ppx!` and `include_ppx_string!`: Parse a template at compile time
+  instead of at runtime.
+
 **planned**
 - `#if`
 - Expansion inside of macros

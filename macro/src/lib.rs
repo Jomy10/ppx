@@ -51,6 +51,13 @@ impl Parse for Args {
     }
 }
 
+/// Parse a macro at compile time from a file.
+///
+/// # Example
+///
+/// ```no_run
+/// include_ppx_string!("path/to/file", "./templates", ["param1", "param2"])
+/// ```
 #[cfg(feature = "nightly")]
 #[proc_macro]
 pub fn include_ppx(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -69,6 +76,17 @@ pub fn include_ppx(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     return output.to_token_stream().into();
 }
 
+/// Parse a macro at compile time from a string.
+///
+/// # Example
+///
+/// ```rust
+/// # use ppx_macros::include_ppx_string;
+/// assert_eq!(
+///     include_ppx_string!("#define A Hello\nA", ".", []),
+///     "Hello"
+/// );
+/// ```
 #[proc_macro]
 pub fn include_ppx_string(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let args = syn::parse_macro_input!(input as Args);
