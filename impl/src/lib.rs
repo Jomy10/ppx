@@ -1,9 +1,27 @@
 use std::borrow::Cow;
-use std::path::{Path, PathBuf};
+// use std::path::{Path, PathBuf};
 
 use concat_string::concat_string;
 use itertools::Itertools;
 use thiserror::Error;
+
+#[cfg(not(feature = "vfs"))]
+type Path = std::path::Path;
+#[cfg(feature = "vfs")]
+type Path = vfs::VfsPath;
+
+fn read_to_string(input_file: &Path) -> Result<String> {
+    #[cfg(not(feature = "vfs"))] {
+        return std::fs::read_to_string(input_file)
+            .map_err(|err| Error::IOError(err, input_file.to_path_buf()));
+    }
+    #[cfg(feature = "vfs")] {
+        let mut result = String::new();
+        input_file.open_file()?.read_to_string(&mut result)
+            .map_err(|err| Error::IOError(err, input_file.as_str().into()))?;
+        return Ok(result);
+    }
+}
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -22,7 +40,10 @@ pub enum Error {
     #[error("Unused parameters while expanding macro file")]
     UnusedParameters,
     #[error("IOError while reading {}: {}", .1.display(), .0)]
-    IOError(std::io::Error, PathBuf)
+    IOError(std::io::Error, std::path::PathBuf),
+    #[cfg(feature = "vfs")]
+    #[error("VfsError: {}", .0)]
+    VfsError(#[from] vfs::VfsError),
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -37,8 +58,12 @@ type Result<T> = std::result::Result<T, Error>;
 /// - `parameters`: if `input_file` contains any parameter macros, pass an iterator
 ///                 to them here. Otherwise pass `std::iter::empty()`.
 pub fn parse<'a>(
-    input_file: impl AsRef<Path>,
-    base_dir: impl AsRef<Path>,
+    // NOTE: type X = impl Y is currently in nightly and would greatly improve readability here
+    // -> type AsRefPath = impl AsRef<Path> and type AsRefPath = impl Into<Path>;
+    #[cfg(not(feature = "vfs"))] input_file: impl AsRef<Path>,
+    #[cfg(feature = "vfs")] input_file: impl Into<Path>,
+    #[cfg(not(feature = "vfs"))] base_dir: impl AsRef<Path>,
+    #[cfg(feature = "vfs")] base_dir: impl Into<Path>,
     parameters: impl Iterator<Item = &'a str>,
 ) -> Result<String> {
     return parse_cow(input_file, base_dir, parameters);
@@ -47,18 +72,21 @@ pub fn parse<'a>(
 /// Same as [parse], but the parameters iterator has an item of `impl Into<Cow<str>>`.
 /// This is so that an empty iterator can be passed to `parse`.
 pub fn parse_cow<'a, Iter, C>(
-    input_file: impl AsRef<Path>,
-    base_dir: impl AsRef<Path>,
+    #[cfg(not(feature = "vfs"))] input_file: impl AsRef<Path>,
+    #[cfg(feature = "vfs")] input_file: impl Into<Path>,
+    #[cfg(not(feature = "vfs"))] base_dir: impl AsRef<Path>,
+    #[cfg(feature = "vfs")] base_dir: impl Into<Path>,
     parameters: Iter
 ) -> Result<String>
     where
         Iter: Iterator<Item = C>,
         C: Into<Cow<'a, str>>
 {
-    let content = match std::fs::read_to_string(input_file.as_ref()) {
-        Ok(content) => content,
-        Err(e) => return Err(Error::IOError(e, input_file.as_ref().to_path_buf())),
-    };
+    #[cfg(not(feature = "vfs"))]
+    let input_file = input_file.as_ref();
+    #[cfg(feature = "vfs")]
+    let input_file = input_file.into();
+    let content = read_to_string(&input_file)?;
 
     return parse_string_cow(&content, base_dir, parameters);
 }
@@ -75,16 +103,19 @@ pub fn parse_cow<'a, Iter, C>(
 ///
 /// ```rust
 /// # use ppx_impl::*;
+/// # #[cfg(not(feature = "vfs"))]
 /// let res = parse_string(
 ///     "#define A 4\nThe answer is A",
 ///     std::env::current_dir().unwrap(),
 ///     std::iter::empty()
 /// ).unwrap();
+/// # #[cfg(not(feature = "vfs"))]
 /// assert_eq!(res, "The answer is 4");
 /// ```
 pub fn parse_string<'a>(
     input: &str,
-    base_dir: impl AsRef<Path>,
+    #[cfg(not(feature = "vfs"))] base_dir: impl AsRef<Path>,
+    #[cfg(feature = "vfs")] base_dir: impl Into<Path>,
     parameters: impl Iterator<Item = &'a str>
 ) -> Result<String> {
     parse_string_cow(input, base_dir, parameters)
@@ -94,14 +125,19 @@ pub fn parse_string<'a>(
 /// This is so that an empty iterator can be passed to `parse_string`.
 pub fn parse_string_cow<'a, Iter, C>(
     input: &str,
-    base_dir: impl AsRef<Path>,
+    #[cfg(not(feature = "vfs"))] base_dir: impl AsRef<Path>,
+    #[cfg(feature = "vfs")] base_dir: impl Into<Path>,
     parameters: Iter
 ) -> Result<String>
     where
         Iter: Iterator<Item = C>,
         C: Into<Cow<'a, str>>
 {
-    parse_string_cow_impl(input, base_dir.as_ref(), &mut parameters.map(|v| v.into()))
+    #[cfg(not(feature = "vfs"))]
+    let base_dir = base_dir.as_ref();
+    #[cfg(feature = "vfs")]
+    let base_dir = base_dir.into();
+    parse_string_cow_impl(input, &base_dir, &mut parameters.map(|v| v.into()))
 }
 
 fn parse_string_cow_impl<'a>(
@@ -197,13 +233,15 @@ fn parse_string_cow_impl<'a>(
                             .filter(|(b, _)| !b)
                             .map(|(_, i)| Cow::Owned(i.collect::<String>()));
 
+                        #[cfg(not(feature = "vfs"))]
                         let file_path = base_dir.join(path);
-                        let content = match std::fs::read_to_string(&file_path) {
-                            Ok(content) => content,
-                            Err(e) => return Err(Error::IOError(e, file_path)),
-                        };
 
-                        out += parse_string_cow_impl(&content, base_dir.as_ref(), &mut params)?.as_str();
+                        #[cfg(feature = "vfs")]
+                        let file_path = base_dir.join(path)?;
+
+                        let content = read_to_string(&file_path)?;
+
+                        out += parse_string_cow_impl(&content, &base_dir, &mut params)?.as_str();
                     }, "param" => {
                         let param_name = line_chars.by_ref()
                             .skip_while(|c| c.is_ascii_whitespace())

@@ -19,6 +19,7 @@ ppx-macros = { path = "macro", version = "1", optional = true }
 [features]
 macro = ["ppx-macros", "ppx-macros/nightly"]
 macro-stable = ["ppx-macros"]
+# vfs = ["ppx/vfs"]
 
 [workspace]
 members = [
