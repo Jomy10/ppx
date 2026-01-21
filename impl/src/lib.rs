@@ -73,6 +73,20 @@ pub fn parse<'a>(
     return parse_cow(input_file, base_dir, parameters);
 }
 
+/// Parse a file in a virtual filesystem using the templating engine.
+///
+/// # Examples
+///
+/// ```rust
+/// # use ppx_impl::parse_vfs;
+/// # use vfs::VfsPath;
+/// let root: VfsPath = vfs::MemoryFS::new().into();
+/// let path = root.join("test.txt").unwrap();
+///
+/// path.create_file().unwrap().write_all(b"#param A\nHello A!");
+/// let result = parse_vfs(path, root, ["world"].into_iter()).unwrap();
+/// assert_eq!(result, "Hello world!");
+/// ```
 #[cfg(feature = "vfs")]
 pub fn parse_vfs<'a>(
     input_file: impl Into<VfsPath>,
