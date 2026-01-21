@@ -36,6 +36,8 @@ More examples in the [tests folder](tests/).
 
 - Macros `include_ppx!` and `include_ppx_string!`: Parse a template at compile time
   instead of at runtime. Enable macros with feature `macro` or `macro-stable`.
+- `vfs` feature: allows using virtual filesystem from the [vfs crate](https://docs.rs/vfs/latest/vfs/)
+  as the input.
 
 **planned**
 - `#if`

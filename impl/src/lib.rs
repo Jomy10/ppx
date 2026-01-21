@@ -1,19 +1,22 @@
 use std::borrow::Cow;
+use std::path::Path;
 // use std::path::{Path, PathBuf};
 
 use concat_string::concat_string;
 use itertools::Itertools;
 use thiserror::Error;
 
-#[cfg(not(feature = "vfs"))]
-type Path = std::path::Path;
 #[cfg(feature = "vfs")]
-type Path = vfs::VfsPath;
+use vfs::VfsPath;
 
-fn read_to_string(input_file: &Path) -> Result<String> {
+#[cfg(not(feature = "vfs"))]
+type FeatPath = std::path::Path;
+#[cfg(feature = "vfs")]
+type FeatPath = vfs::VfsPath;
+
+fn read_to_string(input_file: &FeatPath) -> Result<String> {
     #[cfg(not(feature = "vfs"))] {
-        return std::fs::read_to_string(input_file)
-            .map_err(|err| Error::IOError(err, input_file.to_path_buf()));
+        return read_to_string_std(input_file);
     }
     #[cfg(feature = "vfs")] {
         let mut result = String::new();
@@ -21,6 +24,11 @@ fn read_to_string(input_file: &Path) -> Result<String> {
             .map_err(|err| Error::IOError(err, input_file.as_str().into()))?;
         return Ok(result);
     }
+}
+
+fn read_to_string_std(input_file: &Path) -> Result<String> {
+    return std::fs::read_to_string(input_file)
+        .map_err(|err| Error::IOError(err, input_file.to_path_buf()));
 }
 
 #[derive(Error, Debug)]
@@ -58,37 +66,51 @@ type Result<T> = std::result::Result<T, Error>;
 /// - `parameters`: if `input_file` contains any parameter macros, pass an iterator
 ///                 to them here. Otherwise pass `std::iter::empty()`.
 pub fn parse<'a>(
-    // NOTE: type X = impl Y is currently in nightly and would greatly improve readability here
-    // -> type AsRefPath = impl AsRef<Path> and type AsRefPath = impl Into<Path>;
-    #[cfg(not(feature = "vfs"))] input_file: impl AsRef<Path>,
-    #[cfg(feature = "vfs")] input_file: impl Into<Path>,
-    #[cfg(not(feature = "vfs"))] base_dir: impl AsRef<Path>,
-    #[cfg(feature = "vfs")] base_dir: impl Into<Path>,
+    input_file: impl AsRef<Path>,
+    base_dir: impl AsRef<Path>,
     parameters: impl Iterator<Item = &'a str>,
 ) -> Result<String> {
     return parse_cow(input_file, base_dir, parameters);
 }
 
+#[cfg(feature = "vfs")]
+pub fn parse_vfs<'a>(
+    input_file: impl Into<VfsPath>,
+    base_dir: impl Into<VfsPath>,
+    parameters: impl Iterator<Item = &'a str>
+) -> Result<String> {
+    return parse_vfs_cow(input_file.into(), base_dir.into(), parameters);
+}
+
 /// Same as [parse], but the parameters iterator has an item of `impl Into<Cow<str>>`.
 /// This is so that an empty iterator can be passed to `parse`.
 pub fn parse_cow<'a, Iter, C>(
-    #[cfg(not(feature = "vfs"))] input_file: impl AsRef<Path>,
-    #[cfg(feature = "vfs")] input_file: impl Into<Path>,
-    #[cfg(not(feature = "vfs"))] base_dir: impl AsRef<Path>,
-    #[cfg(feature = "vfs")] base_dir: impl Into<Path>,
+    input_file: impl AsRef<Path>,
+    base_dir: impl AsRef<Path>,
     parameters: Iter
 ) -> Result<String>
     where
         Iter: Iterator<Item = C>,
         C: Into<Cow<'a, str>>
 {
-    #[cfg(not(feature = "vfs"))]
-    let input_file = input_file.as_ref();
-    #[cfg(feature = "vfs")]
-    let input_file = input_file.into();
-    let content = read_to_string(&input_file)?;
+    let content = read_to_string_std(input_file.as_ref())?;
 
     return parse_string_cow(&content, base_dir, parameters);
+}
+
+#[cfg(feature = "vfs")]
+pub fn parse_vfs_cow<'a, Iter, C>(
+    input_file: impl Into<VfsPath>,
+    base_dir: impl Into<VfsPath>,
+    parameters: Iter
+) -> Result<String>
+    where
+        Iter: Iterator<Item = C>,
+        C: Into<Cow<'a, str>>
+{
+    let content = read_to_string(&input_file.into())?;
+
+    return parse_string_vfs_cow(&content, base_dir, parameters);
 }
 
 /// Parses a file using the templating engine.
@@ -114,19 +136,26 @@ pub fn parse_cow<'a, Iter, C>(
 /// ```
 pub fn parse_string<'a>(
     input: &str,
-    #[cfg(not(feature = "vfs"))] base_dir: impl AsRef<Path>,
-    #[cfg(feature = "vfs")] base_dir: impl Into<Path>,
+    base_dir: impl AsRef<Path>,
     parameters: impl Iterator<Item = &'a str>
 ) -> Result<String> {
     parse_string_cow(input, base_dir, parameters)
+}
+
+#[cfg(feature = "vfs")]
+pub fn parse_string_vfs<'a>(
+    input: &str,
+    base_dir: impl Into<VfsPath>,
+    parameters: impl Iterator<Item = &'a str>
+) -> Result<String> {
+    parse_string_vfs_cow(input, base_dir, parameters)
 }
 
 /// Same as [parse_string], but the parameters iterator has an item of `impl Into<Cow<str>>`.
 /// This is so that an empty iterator can be passed to `parse_string`.
 pub fn parse_string_cow<'a, Iter, C>(
     input: &str,
-    #[cfg(not(feature = "vfs"))] base_dir: impl AsRef<Path>,
-    #[cfg(feature = "vfs")] base_dir: impl Into<Path>,
+    base_dir: impl AsRef<Path>,
     parameters: Iter
 ) -> Result<String>
     where
@@ -136,13 +165,26 @@ pub fn parse_string_cow<'a, Iter, C>(
     #[cfg(not(feature = "vfs"))]
     let base_dir = base_dir.as_ref();
     #[cfg(feature = "vfs")]
-    let base_dir = base_dir.into();
+    let base_dir = VfsPath::from(vfs::PhysicalFS::new(base_dir));
     parse_string_cow_impl(input, &base_dir, &mut parameters.map(|v| v.into()))
+}
+
+#[cfg(feature = "vfs")]
+pub fn parse_string_vfs_cow<'a, Iter, C>(
+    input: &str,
+    base_dir: impl Into<VfsPath>,
+    parameters: Iter
+) -> Result<String>
+    where
+        Iter: Iterator<Item = C>,
+        C: Into<Cow<'a, str>>
+{
+    parse_string_cow_impl(input, &base_dir.into(), &mut parameters.map(|v| v.into()))
 }
 
 fn parse_string_cow_impl<'a>(
     input: &str,
-    base_dir: &Path,
+    base_dir: &FeatPath,
     parameters: &mut dyn Iterator<Item = Cow<'a, str>>
 ) -> Result<String> {
     let mut out = String::new();

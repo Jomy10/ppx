@@ -1,8 +1,5 @@
 use ppx_impl::parse_string;
 
-mod utils;
-use utils::*;
-
 #[test]
 fn test_define() {
     assert_eq!(
@@ -10,7 +7,7 @@ fn test_define() {
 #define TEST 5
 
 TESTe TEST",
-            pwd(),
+            std::env::current_dir().unwrap(),
             std::iter::empty()
         ).unwrap(),
 "
@@ -26,7 +23,7 @@ fn test_define_fn() {
  #define TEST(a, b) b a
  TEST(4, 5)
 ",
-            pwd(),
+            std::env::current_dir().unwrap(),
             std::iter::empty()
         ).unwrap(),
         "
@@ -44,7 +41,7 @@ fn test_define_fn_multiline() {
     a
 TEST(world, hello)
 ",
-            pwd(),
+            std::env::current_dir().unwrap(),
             std::iter::empty()
         ).unwrap(),
         "
@@ -60,7 +57,7 @@ fn test_param() {
 #param A
 A
 ",
-            pwd(),
+            std::env::current_dir().unwrap(),
             ["hello"].into_iter()
         ).unwrap(),
         "
@@ -75,7 +72,7 @@ fn test_include() {
         parse_string(r#"
 #include "test.txt"
 "#,
-            pwd().join("tests"),
+            std::env::current_dir().unwrap().join("tests"),
             std::iter::empty()
         ).unwrap(),
         "
@@ -90,7 +87,7 @@ fn test_include_with_param() {
         parse_string(r#"
 #include "test_with_param.txt" hello,world
 "#,
-            pwd().join("tests"),
+            std::env::current_dir().unwrap().join("tests"),
             std::iter::empty()
         ).unwrap(),
         "
@@ -102,7 +99,7 @@ hello world
 
 #[test]
 fn test_too_many_parameters() {
-    match parse_string("", pwd(), [""].into_iter()) {
+    match parse_string("", std::env::current_dir().unwrap(), [""].into_iter()) {
         Err(ppx_impl::Error::UnusedParameters) => {},
         _ => panic!("Expected UnusedParameters error")
     }
@@ -111,7 +108,7 @@ fn test_too_many_parameters() {
 #[cfg(feature = "vfs")]
 #[test]
 fn test_feature_vfs() {
-    use ppx_impl::parse;
+    use ppx_impl::parse_vfs;
 
     let fs = vfs::MemoryFS::new();
     let root: vfs::VfsPath = fs.into();
@@ -131,7 +128,7 @@ A
 B
 ").unwrap();
 
-    let result = parse(
+    let result = parse_vfs(
         root.join("main.txt").unwrap(),
         root,
         ["Hello"].into_iter()
