@@ -16,7 +16,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 proc-macro = true
 
 [dependencies]
-ppx = { path = "..", version = "0.1" }
+ppx = { path = "..", version = "0.2" }
 quote = "1.0.43"
 syn = { version = "2.0.114", features = ["full"] }
 
