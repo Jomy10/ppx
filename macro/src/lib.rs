@@ -67,7 +67,7 @@ impl Parse for Args {
 ///
 /// # Example
 ///
-/// ```no_run
+/// ```ignore
 /// include_ppx_string!("path/to/file", "./templates", ["param1", "param2"])
 /// ```
 #[cfg(feature = "nightly")]

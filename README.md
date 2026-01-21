@@ -48,6 +48,12 @@ More examples in the [tests folder](tests/).
 cargo test --workspace
 ```
 
+Or better, with the [`cargo-all-features`](https://github.com/frewsxcv/cargo-all-features) subcommand:
+
+```sh
+cargo +nightly all-features test --workspace
+```
+
 ## License
 
 MIT or Apache-2.0.
