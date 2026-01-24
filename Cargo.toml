@@ -1,6 +1,6 @@
 [package]
 name = "ppx"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "C-style pre-processor library"
@@ -13,7 +13,7 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-ppx-impl = { path = "impl", version = "=0.2.1" }
+ppx-impl = { path = "impl", version = "=0.3.0" }
 ppx-macros = { path = "macro", version = "1", optional = true }
 
 [features]
