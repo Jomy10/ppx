@@ -404,31 +404,36 @@ fn replace_all_fn<'a>(
             continue;
         }
 
-        let mut open = 1;
+        let iter = iter.tee();
+        let iter2 = iter.1.tee();
+        let iters = (iter.0, iter2.0, iter2.1);
+
         let mut params = Vec::new();
         let mut cur = String::new();
         let mut param_len = 0;
-        for (i, c) in iter.enumerate() {
-            if c == '(' {
-                open += 1
-            } else if c == ')' {
-                open -= 1;
+        for (i, ((prev, c), next)) in std::iter::zip(
+                std::iter::zip([' '].into_iter().chain(iters.0),
+                iters.1
+            ), iters.2.skip(1).chain([' '].into_iter())
+        ).enumerate() {
+            if c == ')' && prev != '\\' {
+                params.push(cur);
+                cur = String::new();
+                param_len = i;
+                break;
             }
 
-            if open == 0 {
-                param_len = i;
-                if cur.len() != 0 {
-                    params.push(cur);
-                }
-                break;
-            } else if open == 1 {
-                if c == ',' {
-                    params.push(cur);
-                    cur = String::new();
-                } else {
-                    cur.push(c);
-                }
+            if c == '\\' && ['(', ')', ','].contains(&next) {
+                continue;
             }
+
+            if c == ',' && prev != '\\' {
+                params.push(cur);
+                cur = String::new();
+                continue;
+            }
+
+            cur.push(c);
         }
 
         let to_replace_len = name.len() + 2 + param_len;

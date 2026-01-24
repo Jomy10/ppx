@@ -105,6 +105,12 @@ fn test_too_many_parameters() {
     }
 }
 
+#[test]
+fn test_param_with_escape() {
+    let res = parse_string("#define TEST(a) a\nTEST(b\\(c\\, d\\))", std::env::current_dir().unwrap(), std::iter::empty()).unwrap();
+    assert_eq!(res, " b(c, d)");
+}
+
 #[cfg(feature = "vfs")]
 #[test]
 fn test_feature_vfs() {

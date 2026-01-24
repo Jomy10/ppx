@@ -14,14 +14,14 @@ let result = ppx::parse_string(
     "
     #param A
     #define B hello
-    #define fn(name), name!
+    #define fn(name) name!
     
     B A fn(John)
     ",
     base_dir,
     ["world"].into_iter()
 );
-// result = "hello world, John!"
+// result = "hello world John!"
 ```
 
 More examples in the [tests folder](tests/).
