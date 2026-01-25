@@ -43,6 +43,11 @@ More examples in the [tests folder](tests/).
 **planned**
 - `#if`
 
+## Versioning
+
+Breaking canges will be introduced in minor versions as long as this crate has not reached 1.0.
+Version 1.0 will be reached once `#if` has been implemented.
+
 ## Development
 
 ### Running tests

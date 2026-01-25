@@ -39,14 +39,16 @@ pub enum Error {
     ExtraParamsInParamMacro(usize),
     #[error("Not enough parameters passed to template file")]
     NotEnoughParameters,
+    #[error("Unused parameters passed to template file")]
+    UnusedParameters,
     #[error("Not enough parameters passed to function-like macro `{}`", .0)]
     NotEnoughParametersMacro(String),
+    #[error("Too many parameters passed to function-like macro `{}`", .0)]
+    UnusedParametersMacro(String),
     #[error("Invalid parameter name {} on line {}", .0, .1)]
     InvalidParameterName(String, usize),
     #[error("First parameter of #include should be a string on line {}", .0)]
     FirstParamOfIncludeNotString(usize),
-    #[error("Unused parameters while expanding macro file")]
-    UnusedParameters,
     #[error("IOError while reading {}: {}", .1.display(), .0)]
     IOError(std::io::Error, std::path::PathBuf),
     #[cfg(feature = "vfs")]
@@ -391,7 +393,7 @@ fn replace_all_fn<'a>(
     name: &str,
     replacement: &str,
     param_names: &Vec<String>,
-    predicate: impl Fn(&str, usize, usize) -> bool
+    predicate: impl Fn(&str, usize, usize) -> bool,
 ) -> Result<Cow<'a, str>> {
     let matches = str.match_indices(name).collect::<Vec<_>>();
 
@@ -404,33 +406,30 @@ fn replace_all_fn<'a>(
             continue;
         }
 
-        let iter = iter.tee();
-        let iter2 = iter.1.tee();
-        let iters = (iter.0, iter2.0, iter2.1);
-
+        let mut parens = 0;
         let mut params = Vec::new();
         let mut cur = String::new();
         let mut param_len = 0;
-        for (i, ((prev, c), next)) in std::iter::zip(
-                std::iter::zip([' '].into_iter().chain(iters.0),
-                iters.1
-            ), iters.2.skip(1).chain([' '].into_iter())
-        ).enumerate() {
-            if c == ')' && prev != '\\' {
-                params.push(cur);
-                cur = String::new();
-                param_len = i;
-                break;
+        for (i, c) in iter.enumerate() {
+            if c == ')' {
+                parens -= 1;
+                if parens == -1 {
+                    params.push(cur);
+                    cur = String::new();
+                    param_len = i;
+                    break;
+                }
             }
 
-            if c == '\\' && ['(', ')', ','].contains(&next) {
-                continue;
-            }
-
-            if c == ',' && prev != '\\' {
+            // next param
+            if c == ',' && parens == 0 {
                 params.push(cur);
                 cur = String::new();
                 continue;
+            }
+
+            if c == '(' {
+                parens += 1;
             }
 
             cur.push(c);
@@ -442,8 +441,10 @@ fn replace_all_fn<'a>(
             continue;
         }
 
-        if params.len() != param_names.len() {
+        if params.len() < param_names.len() {
             return Err(Error::NotEnoughParametersMacro(name.to_string()));
+        } else if params.len() > param_names.len() {
+            return Err(Error::UnusedParametersMacro(name.to_string()))
         }
 
         let params = param_names.iter()

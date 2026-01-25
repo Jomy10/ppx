@@ -65,7 +65,7 @@ dependencies = [
 
 [[package]]
 name = "ppx"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "ppx-impl",
  "ppx-macros",
@@ -73,7 +73,7 @@ dependencies = [
 
 [[package]]
 name = "ppx-impl"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "concat-string",
  "itertools",
@@ -165,7 +165,7 @@ dependencies = [
 
 [[package]]
 name = "wgsl-template"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ppx",
  "quote",
