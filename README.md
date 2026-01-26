@@ -35,6 +35,7 @@ More examples in the [tests folder](tests/).
 - `#include`: Include another file and parse it as well. Optionally accepts
   parameters which will be used for substituting the names specified by `#param`.
 - `#pragma once`: only include a file once
+- Conditional branching with `#if`, `#elif`, `#else`, `#endif`
 
 **Optional features**:
 - Macros `include_ppx!` and `include_ppx_string!`: Parse a template at compile time
@@ -42,13 +43,9 @@ More examples in the [tests folder](tests/).
 - `vfs` feature: allows using virtual filesystem from the [vfs crate](https://docs.rs/vfs/latest/vfs/)
   as the input.
 
-**planned**
-- `#if`
-
 ## Versioning
 
-Breaking canges will be introduced in minor versions as long as this crate has not reached 1.0.
-Version 1.0 will be reached once `#if` has been implemented.
+This crate follows semantic versioning since 1.0.
 
 ## Development
 

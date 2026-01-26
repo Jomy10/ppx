@@ -137,6 +137,110 @@ fn test_paste_middle() {
     assert_eq!(res.trim(), "bdc");
 }
 
+#[test]
+fn test_if_true() {
+    let res = parse_string(r#"
+#if true
+OK
+#endif
+"#,
+        std::env::current_dir().unwrap(),
+        std::iter::empty()
+    ).unwrap();
+    assert_eq!(res.trim(), "OK");
+}
+
+#[test]
+fn test_if_false() {
+    let res = parse_string(r#"
+#if false
+OK
+#endif
+"#,
+        std::env::current_dir().unwrap(),
+        std::iter::empty()
+    ).unwrap();
+    assert_eq!(res.trim(), "");
+}
+
+#[test]
+fn test_else() {
+    let res = parse_string(r#"
+#if false
+NOK
+#else
+OK
+#endif
+"#,
+        std::env::current_dir().unwrap(),
+        std::iter::empty()
+    ).unwrap();
+    assert_eq!(res.trim(), "OK");
+}
+
+#[test]
+fn test_elif() {
+    let res = parse_string(r#"
+#if false
+NOK
+#elif true
+OK
+#endif
+"#,
+        std::env::current_dir().unwrap(),
+        std::iter::empty()
+    ).unwrap();
+    assert_eq!(res.trim(), "OK");
+}
+
+#[test]
+fn test_elif2() {
+    let res = parse_string(r#"
+#if true
+OK
+#elif false
+NOK
+#endif
+"#,
+        std::env::current_dir().unwrap(),
+        std::iter::empty()
+    ).unwrap();
+    assert_eq!(res.trim(), "OK");
+}
+
+#[test]
+fn test_elif_after_else() {
+    let res = parse_string(r#"
+#if false
+A
+#else
+B
+#elif true
+!
+#endif
+"#,
+        std::env::current_dir().unwrap(),
+        std::iter::empty()
+    );
+    match res {
+        Err(ppx_impl::Error::ElifAfterElse) => {},
+        _ => panic!("No error thrown")
+    }
+}
+
+#[test]
+fn test_if_param() {
+    let res = parse_string(r#"
+#param PARAM
+#if PARAM
+OK
+#endif
+"#,
+        std::env::current_dir().unwrap(),
+        ["1"].into_iter()
+    ).unwrap();
+    assert_eq!(res.trim(), "OK");
+}
 
 #[cfg(feature = "vfs")]
 #[test]

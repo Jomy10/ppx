@@ -3,6 +3,7 @@ use std::path::Path;
 // use std::path::{Path, PathBuf};
 
 use concat_string::concat_string;
+use eval::eval;
 use itertools::Itertools;
 use thiserror::Error;
 
@@ -53,6 +54,12 @@ pub enum Error {
     InvalidPragma(String),
     #[error("IOError while reading {}: {}", .1.display(), .0)]
     IOError(std::io::Error, std::path::PathBuf),
+    #[error("Couldn't evaluate `#if` expression condition: {}", .0)]
+    ConditionEvaluationError(#[from] eval::Error),
+    #[error("`#if` condition doesn't evaluate to bool '{}'", .0)]
+    NonBooleanConditionResult(eval::Value),
+    #[error("Elif specified after else")]
+    ElifAfterElse,
     #[cfg(feature = "vfs")]
     #[error("VfsError: {}", .0)]
     VfsError(#[from] vfs::VfsError),
@@ -225,12 +232,35 @@ fn parse_string_cow_rec<'a>(
     let mut out = String::new();
 
     let mut cur_fn_replacement: Option<(String, Vec<String>, String)> = None;
+    let mut if_condition: Vec<(bool, bool, bool)> = vec![];
 
     let max_lines = input.chars()
         .filter(|c| *c == '\n')
         .count();
 
     for (line_num, line) in input.lines().enumerate() {
+        let mut line_chars = line.chars().skip_while(char::is_ascii_whitespace);
+        let start_char = line_chars.by_ref().next();
+
+        let mut macro_name = None;
+
+        if let Some((include, _has_included, _is_end)) = if_condition.last() {
+            if !include {
+                if start_char == Some('#') {
+                    macro_name = Some(line_chars.by_ref().take_while(|c| c.is_ascii_alphanumeric()).collect::<String>());
+                    let macro_name = macro_name.as_ref().unwrap();
+                    if macro_name == "endif" {
+                        if_condition.pop();
+                        continue;
+                    } else if !(macro_name == "else" || macro_name == "elif") {
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
+            }
+        }
+
         if let Some(cur_fn_repl) = cur_fn_replacement {
             if line.ends_with("\\") {
                 cur_fn_replacement = Some((cur_fn_repl.0, cur_fn_repl.1, cur_fn_repl.2 + &line[..line.len()-1]))
@@ -241,12 +271,12 @@ fn parse_string_cow_rec<'a>(
             continue;
         }
 
-        let mut line_chars = line.chars().skip_while(char::is_ascii_whitespace);
-        let start_char = line_chars.by_ref().next();
         match start_char {
             Some('#') => {
-                let macro_name = line_chars.by_ref().take_while(|c| c.is_ascii_alphanumeric()).collect::<String>();
-                match macro_name.as_str() {
+                if macro_name.is_none() {
+                    macro_name = Some(line_chars.by_ref().take_while(|c| c.is_ascii_alphanumeric()).collect::<String>());
+                }
+                match macro_name.as_ref().unwrap().as_str() {
                     "define" => {
                         let mut is_last_bracket = false;
                         let name = line_chars.by_ref()
@@ -358,8 +388,44 @@ fn parse_string_cow_rec<'a>(
                                 return Ok(None);
                             }
                         }
+                    }, "if" => {
+                        let condition = line_chars.collect::<String>();
+                        let condition = fn_replace(replace(&condition, &replacements), &fn_replacements)?;
+                        let res = eval(&condition)?;
+
+                        let Some(res) = res.is_boolean().then(|| res.as_bool().unwrap())
+                            .or_else(|| res.is_string().then(|| res.as_str().unwrap() == "true"))
+                            .or_else(|| res.is_i64().then(|| res.as_i64().unwrap() == 1))
+                            .or_else(|| res.is_u64().then(|| res.as_u64().unwrap() == 1))
+                        else {
+                            return Err(Error::NonBooleanConditionResult(res));
+                        };
+
+                        if_condition.push((res, res, false));
+                    }, "elif" => {
+                        if if_condition.last().map(|r| r.2).unwrap_or(false) {
+                            return Err(Error::ElifAfterElse);
+                        }
+
+                        let condition = line_chars.collect::<String>();
+                        let condition = fn_replace(replace(&condition, &replacements), &fn_replacements)?;
+                        let res = eval(&condition)?;
+
+                        let Some(res) = res.as_bool() else {
+                            return Err(Error::NonBooleanConditionResult(res));
+                        };
+
+                        let last_idx = if_condition.len() - 1;
+                        if_condition[last_idx].0 = res;
+                        if_condition[last_idx].1 |= res;
+                    }, "else" => {
+                        let last_idx = if_condition.len() - 1;
+                        if_condition[last_idx].0 = !if_condition[last_idx].1;
+                        if_condition[last_idx].2 = true;
+                    }, "endif" => {
+                        if_condition.pop();
                     },
-                    _ => return Err(Error::InvalidMacro(macro_name, line_num)),
+                    _ => return Err(Error::InvalidMacro(macro_name.unwrap(), line_num)),
                 }
             },
             Some('\\') if (line_chars.next() == Some('#')) => {
