@@ -77,7 +77,7 @@ pub fn include_wgsl_template(input: proc_macro::TokenStream) -> proc_macro::Toke
     let args = syn::parse_macro_input!(input as Args);
 
     let source_path = PathBuf::from(Span::call_site().file());
-    let base_path = source_path.parent().unwrap();
+    let base_path = source_path.parent().expect("Couldn't get source file parent directory");
 
     let file_path = base_path.join(args.contents_or_path);
     proc_macro::tracked::path(file_path.to_str().expect("File path was not UTF-8 encoded"));
@@ -104,7 +104,7 @@ pub fn include_wgsl_template_string(input: proc_macro::TokenStream) -> proc_macr
     let args = syn::parse_macro_input!(input as Args);
 
     let source_path = PathBuf::from(Span::call_site().file());
-    let base_path = source_path.parent().unwrap();
+    let base_path = source_path.parent().expect("Couldn't get source file parent directory");
 
     let contents = args.contents_or_path;
     let base_path = base_path.join(args.base_path);
