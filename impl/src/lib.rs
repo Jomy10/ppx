@@ -525,7 +525,7 @@ fn replace_all_fn<'a>(
         }
 
         let params = param_names.iter()
-            .zip(params.iter());
+            .zip(params.iter().map(|p| p.trim()));
 
         let mut replacement = Cow::Borrowed(replacement);
         for param in params {

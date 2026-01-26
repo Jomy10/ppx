@@ -25,10 +25,8 @@ fn test_define_fn() {
 ",
             std::env::current_dir().unwrap(),
             std::iter::empty()
-        ).unwrap(),
-        "
-   5 4
-"
+        ).unwrap().trim(),
+        "5 4"
     )
 }
 
@@ -43,10 +41,8 @@ TEST(world, hello)
 ",
             std::env::current_dir().unwrap(),
             std::iter::empty()
-        ).unwrap(),
-        "
-  hello world
-"
+        ).unwrap().trim(),
+        "hello world"
     );
 }
 
