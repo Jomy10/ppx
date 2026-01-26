@@ -36,7 +36,7 @@ pub enum Error {
     #[error("Invalid macro `{}` on line {}", .0, .1)]
     InvalidMacro(String, usize),
     #[error("Found extra parameters in #param macro on line {}", .0)]
-    ExtraParamsInParamMacro(usize),
+    ExtraParamsInMacro(usize, &'static str),
     #[error("Not enough parameters passed to template file")]
     NotEnoughParameters,
     #[error("Unused parameters passed to template file")]
@@ -49,6 +49,8 @@ pub enum Error {
     InvalidParameterName(String, usize),
     #[error("First parameter of #include should be a string on line {}", .0)]
     FirstParamOfIncludeNotString(usize),
+    #[error("Invalid pragma '{}'", .0)]
+    InvalidPragma(String),
     #[error("IOError while reading {}: {}", .1.display(), .0)]
     IOError(std::io::Error, std::path::PathBuf),
     #[cfg(feature = "vfs")]
@@ -203,10 +205,25 @@ fn parse_string_cow_impl<'a>(
     base_dir: &FeatPath,
     parameters: &mut dyn Iterator<Item = Cow<'a, str>>
 ) -> Result<String> {
-    let mut out = String::new();
-
     let mut replacements: Vec<(String, Cow<str>)> = vec![];
     let mut fn_replacements: Vec<(String, Vec<String>, String)> = vec![];
+    let mut visited_sources: Vec<String> = vec![];
+
+    parse_string_cow_rec(input, None, base_dir, parameters, &mut replacements, &mut fn_replacements, &mut visited_sources)
+        .map(|str| str.unwrap())
+}
+
+fn parse_string_cow_rec<'a>(
+    input: &str,
+    path: Option<&str>,
+    base_dir: &FeatPath,
+    parameters: &mut dyn Iterator<Item = Cow<'a, str>>,
+    replacements: &mut Vec<(String, Cow<'a, str>)>,
+    fn_replacements: &mut Vec<(String, Vec<String>, String)>,
+    visited_sources: &mut Vec<String>,
+) -> Result<Option<String>> {
+    let mut out = String::new();
+
     let mut cur_fn_replacement: Option<(String, Vec<String>, String)> = None;
 
     let max_lines = input.chars()
@@ -258,7 +275,7 @@ fn parse_string_cow_impl<'a>(
                             let check_param_name = params.iter().find(|param| !param.chars().all(|c| c.is_alphanumeric() || c == '_'))
                                 .or(params.iter().find(|param| param.len() == 0 || param.chars().next().unwrap().is_numeric()));
                             if let Some(param_name) = check_param_name {
-                                return Err(Error::InvalidParameterName(param_name.clone(), line_num))
+                                return Err(Error::InvalidParameterName(param_name.clone(), line_num).into())
                             }
 
                             let replacement = line_chars.by_ref().collect::<String>();
@@ -279,7 +296,7 @@ fn parse_string_cow_impl<'a>(
                             .collect::<String>();
 
                         if !(path.starts_with('"') && path.ends_with('"')) {
-                            return Err(Error::FirstParamOfIncludeNotString(line_num));
+                            return Err(Error::FirstParamOfIncludeNotString(line_num).into());
                         }
 
                         let path = &path[1..path.len()-1];
@@ -299,7 +316,14 @@ fn parse_string_cow_impl<'a>(
 
                         let content = read_to_string(&file_path)?;
 
-                        out += parse_string_cow_impl(&content, &base_dir, &mut params)?.as_str();
+                        match parse_string_cow_rec(&content, Some(path), &base_dir, &mut params, replacements, fn_replacements, visited_sources) {
+                            Ok(Some(res)) => {
+                                out += res.as_str();
+                                visited_sources.push(path.to_string());
+                            },
+                            Ok(None) => {},
+                            Err(err) => return Err(err),
+                        };
                     }, "param" => {
                         let param_name = line_chars.by_ref()
                             .skip_while(|c| c.is_ascii_whitespace())
@@ -307,14 +331,33 @@ fn parse_string_cow_impl<'a>(
                             .collect::<String>();
 
                         if !line_chars.by_ref().all(|c| c.is_ascii_whitespace()) {
-                            return Err(Error::ExtraParamsInParamMacro(line_num));
+                            return Err(Error::ExtraParamsInMacro(line_num, "param"));
                         }
 
                         let Some(param_value) = parameters.next() else {
                             return Err(Error::NotEnoughParameters);
                         };
 
-                        replacements.push((param_name, param_value.into()));
+                        replacements.push((param_name, param_value));
+                    }, "pragma" => {
+                        let param_name = line_chars.by_ref()
+                            .skip_while(|c| c.is_ascii_whitespace())
+                            .take_while(|c| !c.is_ascii_whitespace())
+                            .collect::<String>();
+
+                        if !line_chars.by_ref().all(|c| c.is_ascii_whitespace()) {
+                            return Err(Error::ExtraParamsInMacro(line_num, "pragma"));
+                        }
+
+                        if param_name != "once" {
+                            return Err(Error::InvalidPragma(param_name));
+                        }
+
+                        if let Some(path) = path {
+                            if visited_sources.iter().find(|p| p.as_str() == path).is_some() {
+                                return Ok(None);
+                            }
+                        }
                     },
                     _ => return Err(Error::InvalidMacro(macro_name, line_num)),
                 }
@@ -338,7 +381,7 @@ fn parse_string_cow_impl<'a>(
         return Err(Error::UnusedParameters);
     }
 
-    return Ok(out);
+    return Ok(Some(out));
 }
 
 fn is_ident(str: &str, start: usize, end: usize) -> bool {

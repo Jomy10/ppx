@@ -33,6 +33,7 @@ More examples in the [tests folder](tests/).
 - `#define`: Define a simple substition, or a function-like macro
 - `#include`: Include another file and parse it as well. Optionally accepts
   parameters which will be used for substituting the names specified by `#param`.
+- `#pragma once`: only include a file once
 
 **Optional features**:
 - Macros `include_ppx!` and `include_ppx_string!`: Parse a template at compile time

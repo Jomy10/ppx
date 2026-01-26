@@ -111,6 +111,18 @@ fn test_param_with_paren() {
     assert_eq!(res, " b(c)");
 }
 
+#[test]
+fn test_pragma_once() {
+    let res = parse_string(r#"
+#include "pragma_once.txt"
+#include "pragma_once.txt"
+"#,
+        std::env::current_dir().unwrap().join("tests"),
+        std::iter::empty()
+    ).unwrap();
+    assert_eq!(res.trim(), "HELLO");
+}
+
 #[cfg(feature = "vfs")]
 #[test]
 fn test_feature_vfs() {
