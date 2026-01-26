@@ -384,16 +384,50 @@ fn parse_string_cow_rec<'a>(
     return Ok(Some(out));
 }
 
-fn is_ident(str: &str, start: usize, end: usize) -> bool {
-    (start == 0 || str.chars().nth(start - 1).map(|c| !(c.is_alphanumeric() || c == '_')).unwrap_or(true))
+/// Returns Some((start, end)) if start, end contains an identifier
+fn ident_range(str: &str, start: usize, end: usize) -> Option<(usize, usize)> {
+    if (start == 0 || str.chars().nth(start - 1).map(|c| !(c.is_alphanumeric() || c == '_')).unwrap_or(true))
         && str.chars().nth(end).map(|c| !(c.is_alphanumeric() || c == '_')).unwrap_or(true)
+    {
+        return Some((start, end));
+    } else {
+        return None;
+    }
+}
+
+fn ident_or_paste_range(str: &str, start: usize, end: usize) -> Option<(usize, usize)> {
+    if start >= 2 && str.chars().skip(start - 2).take(2).all(|c| c == '#') {
+        let mut iter = str.chars().skip(end).take(2).tee();
+        // ##IDENT##
+        if iter.0.count() == 2 && iter.1.all(|c| c == '#') {
+            Some((start - 2, end + 2))
+        // ##IDENT
+        } else if str.chars().nth(end).map(|c| !(c.is_alphanumeric() || c == '_')).unwrap_or(true) {
+            Some((start - 2, end))
+        } else {
+            None
+        }
+    } else if start == 0 || str.chars().nth(start - 1).map(|c| !(c.is_alphanumeric() || c == '_')).unwrap_or(true) {
+        let mut iter = str.chars().skip(end).take(2).tee();
+        // IDENT##
+        if iter.0.count() == 2 && iter.1.all(|c| c == '#') {
+            Some((start, end + 2))
+        // IDENT
+        } else if str.chars().nth(end).map(|c| !(c.is_alphanumeric() || c == '_')).unwrap_or(true)  {
+            Some((start, end))
+        } else {
+            None
+        }
+    } else {
+        None
+    }
 }
 
 fn replace<'a>(line: &'a str, replacements: &Vec<(String, Cow<str>)>) -> Cow<'a, str> {
     let mut out: Cow<str> = line.into();
 
     for replacement in replacements {
-        out = replace_all(out, &replacement.0, replacement.1.as_ref(), is_ident);
+        out = replace_all(out, &replacement.0, replacement.1.as_ref(), ident_range);
     }
 
     return out;
@@ -403,22 +437,22 @@ fn fn_replace<'a>(line: Cow<'a, str>, replacements: &Vec<(String, Vec<String>, S
     let mut out: Cow<str> = line;
 
     for replacement in replacements {
-        out = replace_all_fn(out, replacement.0.as_str(), replacement.2.as_str(), &replacement.1, is_ident)?;
+        out = replace_all_fn(out, replacement.0.as_str(), replacement.2.as_str(), &replacement.1, ident_or_paste_range)?;
     }
 
     return Ok(out);
 }
 
-fn replace_all<'a>(str: Cow<'a, str>, to_match: &str, replacement: &str, predicate: impl Fn(&str, usize, usize) -> bool) -> Cow<'a, str> {
+fn replace_all<'a>(str: Cow<'a, str>, to_match: &str, replacement: &str, predicate: impl Fn(&str, usize, usize) -> Option<(usize, usize)>) -> Cow<'a, str> {
     let matches = str.match_indices(to_match).collect::<Vec<_>>();
 
     let mut out: Option<Cow<str>> = None;
     let mut end_idx = str.len();
 
     for (idx, _) in matches.into_iter().rev() {
-        if predicate(str.as_ref(), idx, idx + to_match.len()) {
-            let following_str = &str[idx + to_match.len()..end_idx];
-            end_idx = idx;
+        if let Some((start, end)) = predicate(str.as_ref(), idx, idx + to_match.len()) {
+            let following_str = &str[end..end_idx];
+            end_idx = start;
             out = out.map(|m| concat_string!(replacement, following_str, m.as_ref()).into())
                 .or(Some(concat_string!(replacement, following_str).into()));
         }
@@ -436,7 +470,7 @@ fn replace_all_fn<'a>(
     name: &str,
     replacement: &str,
     param_names: &Vec<String>,
-    predicate: impl Fn(&str, usize, usize) -> bool,
+    predicate: impl Fn(&str, usize, usize) -> Option<(usize, usize)>,
 ) -> Result<Cow<'a, str>> {
     let matches = str.match_indices(name).collect::<Vec<_>>();
 
@@ -480,9 +514,9 @@ fn replace_all_fn<'a>(
 
         let to_replace_len = name.len() + 2 + param_len;
 
-        if !predicate(str.as_ref(), idx, idx + to_replace_len) {
+        let Some((start, end)) = predicate(str.as_ref(), idx, idx + to_replace_len) else {
             continue;
-        }
+        };
 
         if params.len() < param_names.len() {
             return Err(Error::NotEnoughParametersMacro(name.to_string()));
@@ -495,11 +529,11 @@ fn replace_all_fn<'a>(
 
         let mut replacement = Cow::Borrowed(replacement);
         for param in params {
-            replacement = replace_all(replacement, param.0, param.1, is_ident);
+            replacement = replace_all(replacement, param.0, param.1, ident_or_paste_range);
         }
 
-        let following_str = &str[idx + to_replace_len..end_idx];
-        end_idx = idx;
+        let following_str = &str[end..end_idx];
+        end_idx = start;
         out = out.map(|m| concat_string!(replacement, following_str, m.as_ref()).into())
             .or(Some(concat_string!(replacement, following_str).into()));
     }

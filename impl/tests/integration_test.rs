@@ -123,6 +123,25 @@ fn test_pragma_once() {
     assert_eq!(res.trim(), "HELLO");
 }
 
+#[test]
+fn test_paste_left() {
+    let res = parse_string("#define TEST(a) b##a\nTEST(c)", std::env::current_dir().unwrap(), std::iter::empty()).unwrap();
+    assert_eq!(res.trim(), "bc");
+}
+
+#[test]
+fn test_paste_right() {
+    let res = parse_string("#define TEST(a) a##b\nTEST(c)", std::env::current_dir().unwrap(), std::iter::empty()).unwrap();
+    assert_eq!(res.trim(), "cb");
+}
+
+#[test]
+fn test_paste_middle() {
+    let res = parse_string("#define TEST(a) b##a##c\nTEST(d)", std::env::current_dir().unwrap(), std::iter::empty()).unwrap();
+    assert_eq!(res.trim(), "bdc");
+}
+
+
 #[cfg(feature = "vfs")]
 #[test]
 fn test_feature_vfs() {

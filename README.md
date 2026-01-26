@@ -31,6 +31,7 @@ More examples in the [tests folder](tests/).
 - `#param`: A parameter that can be passed when including the file, or from the
   `parse*` functions.
 - `#define`: Define a simple substition, or a function-like macro
+  - **paste** operator: use `##` to paste two tokens
 - `#include`: Include another file and parse it as well. Optionally accepts
   parameters which will be used for substituting the names specified by `#param`.
 - `#pragma once`: only include a file once
