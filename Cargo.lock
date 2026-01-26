@@ -83,7 +83,7 @@ dependencies = [
 
 [[package]]
 name = "ppx-macros"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
  "ppx-impl",
  "quote",
@@ -165,7 +165,7 @@ dependencies = [
 
 [[package]]
 name = "wgsl-template"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "ppx",
  "quote",

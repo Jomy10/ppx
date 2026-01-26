@@ -1,6 +1,6 @@
 [package]
 name = "wgsl-template"
-version = "0.5.1"
+version = "0.5.2"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "Macro expansion for wgsl using ppx, a C-style macro library"

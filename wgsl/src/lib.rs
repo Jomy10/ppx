@@ -82,6 +82,11 @@ pub fn include_wgsl_template(input: proc_macro::TokenStream) -> proc_macro::Toke
     let file_path = base_path.join(args.contents_or_path);
     proc_macro::tracked::path(file_path.to_str().expect("File path was not UTF-8 encoded"));
     let base_path = base_path.join(args.base_path);
+    let mut tracked_paths = Vec::new();
+    list_files_recursive(&base_path, &mut tracked_paths);
+    for path in tracked_paths.iter() {
+        proc_macro::tracked::path(path.to_str().expect("File path was not UTF-8 encoded"));
+    }
 
     let output = match ppx::parse(&file_path, base_path, args.params.iter().map(|s| s.as_str())) {
         Ok(out) => out,
@@ -97,6 +102,18 @@ pub fn include_wgsl_template(input: proc_macro::TokenStream) -> proc_macro::Toke
             source: ::wgpu::ShaderSource::Wgsl(#output.into()),
         }
     }.into();
+}
+
+#[cfg(feature = "nightly")]
+fn list_files_recursive(dir: impl AsRef<std::path::Path>, out: &mut Vec<PathBuf>) {
+    for path in std::fs::read_dir(dir.as_ref()).unwrap() {
+        let path = path.unwrap().path();
+        if std::fs::metadata(&path).unwrap().is_dir() {
+            list_files_recursive(&path, out);
+        } else {
+            out.push(path);
+        }
+    }
 }
 
 #[proc_macro]
