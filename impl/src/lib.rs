@@ -344,6 +344,13 @@ fn parse_string_cow_rec<'a>(
                         #[cfg(feature = "vfs")]
                         let file_path = base_dir.join(path)?;
 
+                        // relative to the new file
+                        #[cfg(not(feature = "vfs"))]
+                        let base_dir = file_path.parent().unwrap();
+
+                        #[cfg(feature = "vfs")]
+                        let base_dir = file_path.parent();
+
                         let content = read_to_string(&file_path)?;
 
                         match parse_string_cow_rec(&content, Some(path), &base_dir, &mut params, replacements, fn_replacements, visited_sources) {
